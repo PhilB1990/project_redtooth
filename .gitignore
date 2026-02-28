@@ -1,4 +1,5 @@
 # Yocto Build Artifacts
+/build-bbb/
 /poky/build-*/
 /poky/downloads/
 /poky/sstate-cache/

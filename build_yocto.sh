@@ -3,8 +3,9 @@
 
 set -e
 
-PROJECT_DIR="${HOME}/repo/project_redtooth/poky"
-BUILD_DIR="build-bbb"
+REPO_DIR="${HOME}/repo/project_redtooth"
+POKY_DIR="${REPO_DIR}/poky"
+BUILD_DIR="${REPO_DIR}/build-bbb"
 IMAGE="core-image-base"
 
 # Parse command line arguments
@@ -32,17 +33,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "=== BeagleBone Black Yocto Build ==="
-echo "Project: ${PROJECT_DIR}"
+echo "Poky:  ${POKY_DIR}"
 echo "Build: ${BUILD_DIR}"
 echo "Image: ${IMAGE}"
 echo ""
 
-# Navigate to project
-cd "${PROJECT_DIR}"
-
-# Source the build environment
+# Source the build environment from outside poky
 echo "Sourcing build environment..."
+cd "${POKY_DIR}"
 source oe-init-build-env "${BUILD_DIR}"
+
+# Apply our custom conf files (overwrite defaults with our BeagleBone config)
+echo "Applying BeagleBone configuration..."
+cp "${REPO_DIR}/conf/local.conf" "${BUILD_DIR}/conf/local.conf"
+sed "s|##OEROOT##|${POKY_DIR}|g" "${REPO_DIR}/conf/bblayers.conf" > "${BUILD_DIR}/conf/bblayers.conf"
 
 # Clean if requested
 if [ "$CLEAN" = true ]; then
@@ -68,8 +72,8 @@ echo ""
 echo "=== Build Complete! ==="
 echo ""
 echo "Your image is at:"
-echo "${PROJECT_DIR}/${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto/"
+echo "${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto/"
 echo ""
 echo "Image files:"
-ls -lh "${PROJECT_DIR}/${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto/"*.wic* 2>/dev/null || echo "No .wic files found"
+ls -lh "${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto/"*.wic* 2>/dev/null || echo "No .wic files found"
 echo ""
