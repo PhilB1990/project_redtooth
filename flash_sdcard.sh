@@ -3,9 +3,9 @@
 
 set -e
 
-PROJECT_DIR="${HOME}/repo/project_redtooth/poky"
-BUILD_DIR="build-bbb"
-IMAGE_DIR="${PROJECT_DIR}/${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto"
+REPO_DIR="${HOME}/repo/project_redtooth"
+BUILD_DIR="${REPO_DIR}/build-bbb"
+IMAGE_DIR="${BUILD_DIR}/tmp/deploy/images/beaglebone-yocto"
 
 # Parse arguments
 SD_DEVICE=""
