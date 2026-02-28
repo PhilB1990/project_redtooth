@@ -46,7 +46,9 @@ source oe-init-build-env "${BUILD_DIR}"
 # Apply our custom conf files (overwrite defaults with our BeagleBone config)
 echo "Applying BeagleBone configuration..."
 cp "${REPO_DIR}/conf/local.conf" "${BUILD_DIR}/conf/local.conf"
-sed "s|##OEROOT##|${POKY_DIR}|g" "${REPO_DIR}/conf/bblayers.conf" > "${BUILD_DIR}/conf/bblayers.conf"
+sed -e "s|##OEROOT##|${POKY_DIR}|g" \
+    -e "s|##REPOROOT##|${REPO_DIR}|g" \
+    "${REPO_DIR}/conf/bblayers.conf" > "${BUILD_DIR}/conf/bblayers.conf"
 
 # Clean if requested
 if [ "$CLEAN" = true ]; then
