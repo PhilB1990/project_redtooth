@@ -1,0 +1,26 @@
+# Yocto Build Artifacts
+/poky/build-*/
+/poky/downloads/
+/poky/sstate-cache/
+*.wic
+*.wic.xz
+*.wic.bmap
+*.rootfs.tar.*
+*.manifest
+
+# Build artifacts
+*.pyc
+*.o
+*.a
+*.so
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
