@@ -36,19 +36,21 @@ if [ ! -b "$SD_DEVICE" ]; then
     exit 1
 fi
 
-# Find the image
-IMAGE_FILE=$(ls -t ${IMAGE_DIR}/core-image-base-beaglebone-yocto*.rootfs.wic 2>/dev/null | head -1)
+# Find the image (resolve symlink to get real file and size)
+IMAGE_LINK=$(ls -t "${IMAGE_DIR}"/core-image-base-beaglebone-yocto*.rootfs.wic 2>/dev/null | head -1)
 
-if [ ! -f "$IMAGE_FILE" ]; then
+if [ ! -f "$IMAGE_LINK" ]; then
     echo "ERROR: Image file not found in ${IMAGE_DIR}"
     exit 1
 fi
+
+IMAGE_FILE=$(readlink -f "${IMAGE_LINK}")
 
 echo "=== BeagleBone Black SD Card Flash ==="
 echo ""
 echo "Target Device: ${SD_DEVICE}"
 echo "Image File: $(basename ${IMAGE_FILE})"
-echo "Image Size: $(du -h ${IMAGE_FILE} | cut -f1)"
+echo "Image Size: $(du -h "${IMAGE_FILE}" | cut -f1)"
 echo ""
 
 # Safety check - show current device info
@@ -91,6 +93,10 @@ sudo dd if="${IMAGE_FILE}" of=${SD_DEVICE} bs=4M status=progress conv=fsync
 
 # Final sync
 sync
+
+# Eject the SD card safely
+echo "Ejecting SD card..."
+sudo eject "${SD_DEVICE}"
 
 echo ""
 echo "=== Flash Complete! ==="
