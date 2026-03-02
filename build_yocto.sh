@@ -43,6 +43,13 @@ echo "Sourcing build environment..."
 cd "${POKY_DIR}"
 source oe-init-build-env "${BUILD_DIR}"
 
+# Clean the changed recipes and rebuild the full image
+bitbake busybox -c cleanall
+bitbake bbb-led -c cleanall
+bitbake bbb-led-server -c cleanall
+
+bitbake bbb-led -c cleansstate && bitbake bbb-led
+
 # Apply our custom conf files (overwrite defaults with our BeagleBone config)
 echo "Applying BeagleBone configuration..."
 cp "${REPO_DIR}/conf/local.conf" "${BUILD_DIR}/conf/local.conf"
