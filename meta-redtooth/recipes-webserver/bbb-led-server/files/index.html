@@ -15,76 +15,85 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      gap: 32px;
     }
-    h1 { font-size: 1.8em; margin-bottom: 8px; }
-    .subtitle { color: #888; font-size: 0.9em; margin-bottom: 48px; }
-    .controls { display: flex; gap: 24px; }
-    .btn {
-      padding: 24px 48px;
+    h1 { font-size: 1.8em; }
+    #clock { color: #aaa; font-size: 1em; letter-spacing: 0.03em; }
+    .led-buttons {
+      display: flex;
+      gap: 16px;
+    }
+    .led-btn {
+      width: 90px;
+      height: 90px;
+      border: none;
+      border-radius: 12px;
       font-size: 1.1em;
       font-weight: bold;
-      border: none;
-      border-radius: 10px;
       cursor: pointer;
-      transition: transform 0.1s, opacity 0.1s;
+      background: #d50000;
+      color: #fff;
+      transition: background 0.2s, transform 0.1s, opacity 0.1s;
     }
-    .btn:active { transform: scale(0.96); }
-    .btn-on  { background: #00c853; color: #000; }
-    .btn-off { background: #d50000; color: #fff; }
-    .btn-on:hover  { opacity: 0.85; }
-    .btn-off:hover { opacity: 0.85; }
-    #status {
-      margin-top: 36px;
-      font-size: 1em;
-      color: #aaa;
-      min-height: 1.4em;
-    }
-    .led-indicator {
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 8px;
-      background: #333;
-      box-shadow: 0 0 0px #000;
-      transition: background 0.3s, box-shadow 0.3s;
-    }
-    .led-indicator.on {
-      background: #ffeb3b;
-      box-shadow: 0 0 12px 4px #ffeb3b88;
-    }
+    .led-btn.on  { background: #00c853; color: #000; }
+    .led-btn:active { transform: scale(0.94); }
+    .led-btn:hover  { opacity: 0.85; }
   </style>
 </head>
 <body>
   <h1>BBB LED Control</h1>
-  <p class="subtitle">BeagleBone Black &mdash; D2 USR0 LED</p>
-
-  <div class="controls">
-    <button class="btn btn-on"  onclick="setLed('on')">LED ON</button>
-    <button class="btn btn-off" onclick="setLed('off')">LED OFF</button>
-  </div>
-
-  <p id="status"><span class="led-indicator" id="indicator"></span><span id="state-text">...</span></p>
+  <p id="clock"></p>
+  <div class="led-buttons" id="btns"></div>
 
   <script>
-    function updateDisplay(text) {
-      var isOn = text.trim() === 'LED ON';
-      document.getElementById('indicator').className = 'led-indicator' + (isOn ? ' on' : '');
-      document.getElementById('state-text').textContent = text.trim();
+    var clockFmt = new Intl.DateTimeFormat('fr-CA', {
+      timeZone: 'America/Montreal',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    function updateClock() {
+      document.getElementById('clock').textContent = clockFmt.format(new Date());
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    var NUM_LEDS = 4;
+    var states = [false, false, false, false];
+
+    var container = document.getElementById('btns');
+    for (var i = 0; i < NUM_LEDS; i++) {
+      (function(n) {
+        var btn = document.createElement('button');
+        btn.className = 'led-btn';
+        btn.id = 'btn' + n;
+        btn.textContent = 'USR' + n;
+        btn.onclick = function() { toggleLed(n); };
+        container.appendChild(btn);
+      })(i);
     }
 
-    function setLed(action) {
-      fetch('/cgi-bin/led.sh?action=' + action)
+    function setDisplay(n, isOn) {
+      states[n] = isOn;
+      var btn = document.getElementById('btn' + n);
+      btn.className = 'led-btn' + (isOn ? ' on' : '');
+    }
+
+    function toggleLed(n) {
+      var action = states[n] ? 'off' : 'on';
+      fetch('/?led=' + n + '&action=' + action)
         .then(function(r) { return r.text(); })
-        .then(updateDisplay)
-        .catch(function(e) { document.getElementById('state-text').textContent = 'Error: ' + e; });
+        .then(function(t) { setDisplay(n, t.trim() === 'LED ON'); })
+        .catch(function() {});
     }
 
-    // Show current state on page load
-    fetch('/cgi-bin/led.sh?action=status')
-      .then(function(r) { return r.text(); })
-      .then(updateDisplay)
-      .catch(function() { document.getElementById('state-text').textContent = 'Unavailable'; });
+    for (var j = 0; j < NUM_LEDS; j++) {
+      (function(n) {
+        fetch('/?led=' + n + '&action=status')
+          .then(function(r) { return r.text(); })
+          .then(function(t) { setDisplay(n, t.trim() === 'LED ON'); })
+          .catch(function() {});
+      })(j);
+    }
   </script>
 </body>
 </html>

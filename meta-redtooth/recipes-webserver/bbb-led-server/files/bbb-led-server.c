@@ -1,6 +1,11 @@
 /*
  * bbb-led-server.c - Minimal HTTP server for BBB LED control
- * Listens on port 80, serves index.html and handles LED control via /dev/bbb_led
+ * Listens on port 80, serves index.html and handles LED control via /dev/bbb_ledN
+ *
+ * URL scheme:
+ *   GET /               → serve index.html
+ *   GET /?led=N&action=on|off|status  → control USR LED N (0..3)
+ *   led parameter defaults to 0 if omitted
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,9 +17,16 @@
 #include <signal.h>
 
 #define PORT        80
-#define LED_DEV     "/dev/bbb_led"
+#define NUM_LEDS    4
 #define INDEX_HTML  "/var/www/index.html"
 #define BUFSIZE     2048
+
+static const char *LED_DEVS[NUM_LEDS] = {
+    "/dev/bbb_led0",
+    "/dev/bbb_led1",
+    "/dev/bbb_led2",
+    "/dev/bbb_led3",
+};
 
 static void send_text(int fd, const char *body)
 {
@@ -45,16 +57,18 @@ static void send_html(int fd)
     close(f);
 }
 
-static void led_set(int val)
+static void led_set(int idx, int val)
 {
-    int f = open(LED_DEV, O_WRONLY);
+    if (idx < 0 || idx >= NUM_LEDS) return;
+    int f = open(LED_DEVS[idx], O_WRONLY);
     if (f >= 0) { write(f, val ? "1" : "0", 1); close(f); }
 }
 
-static int led_get(void)
+static int led_get(int idx)
 {
     char c = '0';
-    int f = open(LED_DEV, O_RDONLY);
+    if (idx < 0 || idx >= NUM_LEDS) return 0;
+    int f = open(LED_DEVS[idx], O_RDONLY);
     if (f >= 0) { read(f, &c, 1); close(f); }
     return c == '1';
 }
@@ -72,14 +86,29 @@ static void handle_client(int cli)
         char *sp = strchr(qs, ' ');
         if (sp) *sp = '\0';
 
-        if (strstr(qs, "action=on"))
-            { led_set(1); send_text(cli, "LED ON\n"); }
-        else if (strstr(qs, "action=off"))
-            { led_set(0); send_text(cli, "LED OFF\n"); }
-        else if (strstr(qs, "action=status"))
-            send_text(cli, led_get() ? "LED ON\n" : "LED OFF\n");
-        else
+        /* Parse led index (default 0) */
+        int idx = 0;
+        char *lp = strstr(qs, "led=");
+        if (lp) {
+            idx = atoi(lp + 4);
+            if (idx < 0 || idx >= NUM_LEDS) idx = 0;
+        }
+
+        char resp[32];
+        if (strstr(qs, "action=on")) {
+            led_set(idx, 1);
+            snprintf(resp, sizeof(resp), "LED ON\n");
+            send_text(cli, resp);
+        } else if (strstr(qs, "action=off")) {
+            led_set(idx, 0);
+            snprintf(resp, sizeof(resp), "LED OFF\n");
+            send_text(cli, resp);
+        } else if (strstr(qs, "action=status")) {
+            snprintf(resp, sizeof(resp), "%s\n", led_get(idx) ? "LED ON" : "LED OFF");
+            send_text(cli, resp);
+        } else {
             send_html(cli);
+        }
     } else {
         send_html(cli);
     }
