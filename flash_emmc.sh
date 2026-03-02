@@ -1,7 +1,7 @@
 #!/bin/bash
 # Flash BeagleBone Black eMMC over Ethernet via SSH
 
-set -e
+set -eo pipefail
 
 REPO_DIR="${HOME}/repo/project_redtooth"
 BUILD_DIR="${REPO_DIR}/build-bbb"
@@ -88,12 +88,18 @@ echo "Image:      $(basename ${IMAGE_FILE})"
 echo "Image Size: $(du -h "${IMAGE_FILE}" | cut -f1)"
 echo ""
 echo "Streaming image to eMMC over Ethernet..."
-echo "This may take a few minutes..."
 echo ""
 
-# Stream image directly into eMMC via SSH (no tmp space needed on the board)
-ssh -o StrictHostKeyChecking=no "${BBB_USER}@${BBB_IP}" \
-        "busybox dd of=${BBB_EMMC} bs=4M && busybox sync && until [ \"\$(busybox awk '{print \$9}' /sys/block/mmcblk1/stat)\" = '0' ]; do busybox sleep 1; done && busybox sleep 3" < "${IMAGE_FILE}"
+IMAGE_BYTES=$(stat -c%s "${IMAGE_FILE}")
+
+# Stream with progress bar (pv preferred, dd fallback)
+if command -v pv &>/dev/null; then
+    pv -s "${IMAGE_BYTES}" "${IMAGE_FILE}"
+else
+    echo "(Tip: sudo apt install pv  for a nicer progress bar)"
+    dd if="${IMAGE_FILE}" bs=4M status=progress
+fi | ssh -o StrictHostKeyChecking=no "${BBB_USER}@${BBB_IP}" \
+        "busybox dd of=${BBB_EMMC} bs=4M && busybox sync && until [ \"\$(busybox awk '{print \$9}' /sys/block/mmcblk1/stat)\" = '0' ]; do busybox sleep 1; done && busybox sleep 3"
 
 echo ""
 echo "=== eMMC Flash Complete! ==="
