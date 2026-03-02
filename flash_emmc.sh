@@ -87,28 +87,14 @@ echo "eMMC:       ${BBB_EMMC}"
 echo "Image:      $(basename ${IMAGE_FILE})"
 echo "Image Size: $(du -h "${IMAGE_FILE}" | cut -f1)"
 echo ""
-echo "WARNING: This will COMPLETELY ERASE the eMMC (${BBB_EMMC}) on the BeagleBone!"
-echo ""
-read -p "Are you absolutely sure? Type 'yes' to continue: " -r
-if [[ ! $REPLY == "yes" ]]; then
-    echo "Cancelled."
-    exit 0
-fi
-
-echo ""
 echo "Streaming image to eMMC over Ethernet..."
 echo "This may take a few minutes..."
 echo ""
 
 # Stream image directly into eMMC via SSH (no tmp space needed on the board)
 ssh -o StrictHostKeyChecking=no "${BBB_USER}@${BBB_IP}" \
-    "dd of=${BBB_EMMC} bs=4M status=progress conv=fsync" < "${IMAGE_FILE}"
+        "busybox dd of=${BBB_EMMC} bs=4M && busybox sync && until [ \"\$(busybox awk '{print \$9}' /sys/block/mmcblk1/stat)\" = '0' ]; do busybox sleep 1; done && busybox sleep 3" < "${IMAGE_FILE}"
 
 echo ""
 echo "=== eMMC Flash Complete! ==="
-echo ""
-echo "Next steps:"
-echo "  1. Remove the SD card from the BeagleBone"
-echo "  2. Run: ssh ${BBB_USER}@${BBB_IP} reboot"
-echo "  3. BeagleBone will boot from eMMC automatically"
 echo ""

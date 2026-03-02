@@ -1,0 +1,13 @@
+[Unit]
+Description=BBB LED Web Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/bbb-led-server
+Restart=on-failure
+KillMode=mixed
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

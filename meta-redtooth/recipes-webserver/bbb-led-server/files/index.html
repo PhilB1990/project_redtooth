@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BBB LED Control</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.8em; margin-bottom: 8px; }
+    .subtitle { color: #888; font-size: 0.9em; margin-bottom: 48px; }
+    .controls { display: flex; gap: 24px; }
+    .btn {
+      padding: 24px 48px;
+      font-size: 1.1em;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-on  { background: #00c853; color: #000; }
+    .btn-off { background: #d50000; color: #fff; }
+    .btn-on:hover  { opacity: 0.85; }
+    .btn-off:hover { opacity: 0.85; }
+    #status {
+      margin-top: 36px;
+      font-size: 1em;
+      color: #aaa;
+      min-height: 1.4em;
+    }
+    .led-indicator {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+      background: #333;
+      box-shadow: 0 0 0px #000;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .led-indicator.on {
+      background: #ffeb3b;
+      box-shadow: 0 0 12px 4px #ffeb3b88;
+    }
+  </style>
+</head>
+<body>
+  <h1>BBB LED Control</h1>
+  <p class="subtitle">BeagleBone Black &mdash; D2 USR0 LED</p>
+
+  <div class="controls">
+    <button class="btn btn-on"  onclick="setLed('on')">LED ON</button>
+    <button class="btn btn-off" onclick="setLed('off')">LED OFF</button>
+  </div>
+
+  <p id="status"><span class="led-indicator" id="indicator"></span><span id="state-text">...</span></p>
+
+  <script>
+    function updateDisplay(text) {
+      var isOn = text.trim() === 'LED ON';
+      document.getElementById('indicator').className = 'led-indicator' + (isOn ? ' on' : '');
+      document.getElementById('state-text').textContent = text.trim();
+    }
+
+    function setLed(action) {
+      fetch('/cgi-bin/led.sh?action=' + action)
+        .then(function(r) { return r.text(); })
+        .then(updateDisplay)
+        .catch(function(e) { document.getElementById('state-text').textContent = 'Error: ' + e; });
+    }
+
+    // Show current state on page load
+    fetch('/cgi-bin/led.sh?action=status')
+      .then(function(r) { return r.text(); })
+      .then(updateDisplay)
+      .catch(function() { document.getElementById('state-text').textContent = 'Unavailable'; });
+  </script>
+</body>
+</html>
