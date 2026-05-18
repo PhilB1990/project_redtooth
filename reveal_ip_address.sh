@@ -16,7 +16,7 @@ fi
 
 # 2. Try mDNS hostname (beaglebone.local)
 echo "Checking mDNS (${BBB_HOSTNAME}.local)..."
-MDNS_IP=$(avahi-resolve-host-name "${BBB_HOSTNAME}.local" 2>/dev/null | awk '{print $2}')
+MDNS_IP=$(avahi-resolve-host-name -4 "${BBB_HOSTNAME}.local" 2>/dev/null | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$')
 if [ -n "${MDNS_IP}" ]; then
     echo "  Found via mDNS: ${MDNS_IP}"
     BBB_IP="${MDNS_IP}"
